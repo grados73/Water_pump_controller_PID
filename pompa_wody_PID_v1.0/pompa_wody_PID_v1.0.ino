@@ -111,9 +111,9 @@ void loop() {
 
 int LiczPID()
 {
-  Error = ZADANYPOZIOM - LiczAktualnyPoziomWody();                                // CZESC P
-  ErrorSum = ErrorSum + ((Error + LastError)*0.5);      // CZESC I
-  Derror = (Error - LastError);                                                   // CZESC D
+  Error = ZADANYPOZIOM - LiczAktualnyPoziomWody();                                                    // CZESC P
+  ErrorSum = ErrorSum + (int)((float)(Error + LastError)*(float)(CZASPOWTARZANIAPID/1000)*0.5);       // CZESC I
+  Derror = (Error - LastError);                                                                       // CZESC D
   Pout = Kp * Error;
   Iout = Ki * ErrorSum;
   Dout = Kd * Derror;
