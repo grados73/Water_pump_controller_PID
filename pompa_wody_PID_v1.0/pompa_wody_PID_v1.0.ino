@@ -46,7 +46,8 @@
  #define ZADANYPOZIOM 3
 
 // CZAS W MILISEKUNDACH CO JAKI MA BYC LICZONA WARTOSC REGULATORA PID
- #define CZASPOWTARZANIAPID 1000 // 1000ms = 1s
+ #define CZASPOWTARZANIAPID 1000      // 1000ms = 1s
+ #define CZASPOWTARZANIAPRZEP 2000    // 2000ms = 2s
 
 // ZMIENNE PRZECHOWUJACE NASTAWY REGULATORA PID
   float Kp = 0.7;
@@ -63,10 +64,10 @@
   float Derror = 0;         // WARTOSC WYKORZYSTYWANA DO REALIZACJI CZESCI ROZNICZKUJACEJ
 
 // ZMIENNA PRZECHOWUJACA CZESTOTTLIWOSC SYGNALU Z PRZEPLYWOMIERZA
-  float InputFrequency = 0; // CZESTOTLIWOSC SYGNALU Z PRZEPLYWOMIERZA
-  unsigned long HighTime = 0  // CZAS TRWANIA IMPULSU WYSOKIEGO
-  unsigned long LowTime = 0;  // CZAS TRWANIA IMPULSU NISKIEGO
-  unsigned long ImpulseTimeDuration = 0 // CZAS TRWANIA CALEGO IMPULSU Z PRZEPLYWOMIERZA
+  float InputFrequency = 0;    // CZESTOTLIWOSC SYGNALU Z PRZEPLYWOMIERZA
+  unsigned long HighTime = 0;  // CZAS TRWANIA IMPULSU WYSOKIEGO
+  unsigned long LowTime = 0;   // CZAS TRWANIA IMPULSU NISKIEGO
+  unsigned long ImpulseTimeDuration = 0 ;  // CZAS TRWANIA CALEGO IMPULSU Z PRZEPLYWOMIERZA
   unsigned int WartoscPrzeplywomierza = 0; // ILOSC ML/MIN
  
 
@@ -78,10 +79,11 @@
 //
  unsigned long AktualnyCzas = 0;
  unsigned long ZapamietanyCzasPID = 0;
+ unsigned long ZapamietanyCzasPrzep = 0;
 
 
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
   //
   //DEFINICJA PINOW CZUJNIKOW POZIOMU CIECZY - PINY PODCIAGNIETE WEWNETRZNIE DO VCC - ZALACZENIE CZUJNIKA ZWIERA GO DO GND
@@ -113,7 +115,9 @@ void setup() {
 
 
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//PETLA GLOWNA PROGRAMU//////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop() {
   
   AktualnyCzas = millis();
@@ -122,10 +126,17 @@ void loop() {
     LiczPID();
     ZapamietanyCzasPID = AktualnyCzas;
   }
+  if(AktualnyCzas - ZapamietanyCzasPrzep >= CZASPOWTARZANIAPRZEP)
+  {
+    WartoscPrzeplywomierza = LiczPrzeplyw;
+    ZapamietanyCzasPrzep = AktualnyCzas;
+  }
   
 }
-
-int LiczPID()
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//FUNKCJE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void LiczPID()
 {
   Error = ZADANYPOZIOM - LiczAktualnyPoziomWody();                                                    // CZESC P
   ErrorSum = ErrorSum + (int)((float)(Error + LastError)*((float)CZASPOWTARZANIAPID/1000)*0.5);       // CZESC I
@@ -148,24 +159,27 @@ int LiczPID()
   analogWrite(ENABLE1PIN, WartoscWypelnienia);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int LiczPrzeplyw()
 {
-  HighTime = pulseIn(PRZEPLYWOMIERZPIN, HIGH, 100); // CZAS TRWANIA STANU WYSOKIEGO W MIKROSEKUNDACH
-  LowTime = pulseIn(PRZEPLYWOMIERZPIN, LOW, 100);   // CZAS TRWANIA STANU NISKIEGO W MIKROSEKUNDACH
+  unsigned int Przeplyw = 0;
+  HighTime = pulseIn(PRZEPLYWOMIERZPIN, HIGH, 100000); // CZAS TRWANIA STANU WYSOKIEGO W MIKROSEKUNDACH
+  LowTime = pulseIn(PRZEPLYWOMIERZPIN, LOW, 100000);   // CZAS TRWANIA STANU NISKIEGO W MIKROSEKUNDACH
   if(HighTime == 0 or LowTime == 0)
   {
     BladUszkodzonegoPrzeplywomierza();
+    Przeplyw = 0;
   }
   else
   {
     ImpulseTimeDuration = HighTime + LowTime;
-    InputFrequency = (1.0/((float)ImpulseTimeDuration/1000000))
-    WartoscPrzeplywomierza = (unsigned int)(60* InputFrequency * 14); // Ilosc ml/min, w czujniku YF-S402 jeden impuls to okolo 14ml
+    InputFrequency = (1.0/((float)ImpulseTimeDuration/1000000));
+    Przeplyw = (unsigned int)(60* InputFrequency * 14); // Ilosc ml/min, w czujniku YF-S402 jeden impuls to okolo 14ml
   }
+  return Przeplyw;
 }
 
-
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int LiczAktualnyPoziomWody()
 {
   //6poziom
@@ -219,13 +233,16 @@ int LiczAktualnyPoziomWody()
   
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int BladUszkodzeniaCzujnika()
 {
+  Serial.println("UWAGA PRZYNAJMNIEJ JEDEN Z CZUJNIKOW JEST USZKODZONY!");
   return ZADANYPOZIOM; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> WYLACZAM POMPKE
   //return 6; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> POMPUJE CALY CZAS WODE Z MAKSYMALNA PREDKOSCIA
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void BladUszkodzonegoPrzeplywomierza()
 {
-  
+  Serial.println("UWAGA PRZEPLYWOMIERZ JEST USZKODZONY!");
 }
