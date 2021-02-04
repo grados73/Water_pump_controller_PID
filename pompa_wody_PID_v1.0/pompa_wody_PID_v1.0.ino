@@ -32,7 +32,21 @@
  #define CZUJNIK_5_PIN 5
  #define CZUJNIK_6_PIN 6
 
+// ZADANY POZIOM WODY, WARTOSC OD 0 DO 6
+ #define ZADANYPOZIOM 3
+
+// CZAS W MILISEKUNDACH CO JAKI MA BYC LICZONA WARTOSC REGULATORA PID
+ #define CZASPOWTARZANIAPID 100
+
+ 
+
  int AktualnyPoziomWody = 0;
+
+//
+// ZMIENNE ZDEFINIOWANE DO OBSLUGI CZASU
+//
+ unsigned long AktualnyCzas = 0;
+ unsigned long ZapamietanyCzasPID = 0;
 
 void setup() {
   //
@@ -50,8 +64,18 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  
+  AktualnyCzas = millis();
+  if(AktualnyCzas - ZapamietanyCzasPID >= CZASPOWTARZANIAPID)
+  {
+    LiczPID();
+  }
+  
+}
 
+int LiczPID()
+{
+  
 }
 
 int LiczAktualnyPoziomWody()
