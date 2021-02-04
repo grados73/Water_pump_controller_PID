@@ -36,9 +36,11 @@
  //
  // NUMERY PINOW ARDUINO DO OBSLUGI L293D
  //
-  #define INPUT1PIN 12   // kierunek kanalu pierwszego
+  #define INPUT1PIN 11   // kierunek kanalu pierwszego
   #define INPUT2PIN 13   // kierunek kanalu pierwszego
   #define ENABLE1PIN 6  // PWM kanalu pierwszego, wybieramy pin 6, bo Fpwm dla pin 5 i 6 = 980Hz, dla reszty 490Hz
+
+  #define PRZEPLYWOMIERZPIN 12 // PIN DO KTOREGO PODLACZONY JEST PRZEPLYWOMIERZ
 
 // ZADANY POZIOM WODY, WARTOSC OD 0 DO 6
  #define ZADANYPOZIOM 3
@@ -61,7 +63,11 @@
   float Derror = 0;         // WARTOSC WYKORZYSTYWANA DO REALIZACJI CZESCI ROZNICZKUJACEJ
 
 // ZMIENNA PRZECHOWUJACA CZESTOTTLIWOSC SYGNALU Z PRZEPLYWOMIERZA
-  unsigned int InputFrequency = 0;
+  float InputFrequency = 0; // CZESTOTLIWOSC SYGNALU Z PRZEPLYWOMIERZA
+  unsigned long HighTime = 0  // CZAS TRWANIA IMPULSU WYSOKIEGO
+  unsigned long LowTime = 0;  // CZAS TRWANIA IMPULSU NISKIEGO
+  unsigned long ImpulseTimeDuration = 0 // CZAS TRWANIA CALEGO IMPULSU Z PRZEPLYWOMIERZA
+  unsigned int WartoscPrzeplywomierza = 0; // ILOSC ML/MIN
  
 
  int AktualnyPoziomWody = 0; // informacja z czujnikow
@@ -72,6 +78,9 @@
 //
  unsigned long AktualnyCzas = 0;
  unsigned long ZapamietanyCzasPID = 0;
+
+
+
 
 void setup() {
   //
@@ -94,9 +103,16 @@ void setup() {
   digitalWrite(INPUT1PIN, HIGH);
   digitalWrite(INPUT2PIN, LOW);
   analogWrite(ENABLE1PIN, WartoscWypelnienia);
-  
+
+  //
+  // URUCHOMIENIE UARTA DO WYSYLANIA SYGNALOW BLEDOW
+  //
+  Serial.begin(9600);
   
 }
+
+
+
 
 void loop() {
   
@@ -130,8 +146,22 @@ int LiczPID()
 
   // ZMIANA WYPELNIENIA STERUJACEGO DZIALANIEM POMPY
   analogWrite(ENABLE1PIN, WartoscWypelnienia);
-  
-  
+}
+
+int LiczPrzeplyw()
+{
+  HighTime = pulseIn(PRZEPLYWOMIERZPIN, HIGH, 100); // CZAS TRWANIA STANU WYSOKIEGO W MIKROSEKUNDACH
+  LowTime = pulseIn(PRZEPLYWOMIERZPIN, LOW, 100);   // CZAS TRWANIA STANU NISKIEGO W MIKROSEKUNDACH
+  if(HighTime == 0 or LowTime == 0)
+  {
+    BladUszkodzonegoPrzeplywomierza();
+  }
+  else
+  {
+    ImpulseTimeDuration = HighTime + LowTime;
+    InputFrequency = (1.0/((float)ImpulseTimeDuration/1000000))
+    WartoscPrzeplywomierza = (unsigned int)(60* InputFrequency * 14); // Ilosc ml/min, w czujniku YF-S402 jeden impuls to okolo 14ml
+  }
 }
 
 
@@ -193,4 +223,9 @@ int BladUszkodzeniaCzujnika()
 {
   return ZADANYPOZIOM; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> WYLACZAM POMPKE
   //return 6; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> POMPUJE CALY CZAS WODE Z MAKSYMALNA PREDKOSCIA
+}
+
+void BladUszkodzonegoPrzeplywomierza()
+{
+  
 }
