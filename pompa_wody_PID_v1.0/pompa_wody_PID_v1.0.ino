@@ -21,6 +21,7 @@
  * 
  * 
  */
+ #include "TimerOne.h"
  
  //
  // NUMERY PINOW ARDUINO DO KTORYCH PODLACZONE SA KOLEJNE CZUJNIKI
@@ -43,12 +44,28 @@
  #define ZADANYPOZIOM 3
 
 // CZAS W MILISEKUNDACH CO JAKI MA BYC LICZONA WARTOSC REGULATORA PID
- #define CZASPOWTARZANIAPID 100
+ #define CZASPOWTARZANIAPID 1000 // 1000ms = 1s
 
+// ZMIENNE PRZECHOWUJACE NASTAWY REGULATORA PID
+  float Kp = 0.7;
+  float Ki = 1;
+  float Kd = 0.2;
+
+// ZMIENNE PRZECHOWUJACE WYNIKI OBLICZEN KONKRETNYCH NASTAW REGULATORA
+  float Pout, Iout, Dout; 
+
+// WARTOSCI BLEDU
+  float Error = 0;          // WARTOSC BLEDU W AKTUALNEJ CHWILI CZASU
+  float LastError = 0;      // WARTOSC BLEDU Z OSTATNIEGO POMIARU
+  float ErrorSum = 0;       // WARTOSC BLEDU DLA CZESCI CALKUJACEJ
+  float Derror = 0;         // WARTOSC WYKORZYSTYWANA DO REALIZACJI CZESCI ROZNICZKUJACEJ
+
+// ZMIENNA PRZECHOWUJACA CZESTOTTLIWOSC SYGNALU Z PRZEPLYWOMIERZA
+  unsigned int InputFrequency = 0;
  
 
- int AktualnyPoziomWody = 0;
- int WartoscWypelnienia =0; // WARTOSC PRZESYLANA DO MOSTKA H - PWM (0-255)
+ int AktualnyPoziomWody = 0; // informacja z czujnikow
+ int WartoscWypelnienia = 0; // WARTOSC PRZESYLANA DO MOSTKA H - PWM (0-255)
 
 //
 // ZMIENNE ZDEFINIOWANE DO OBSLUGI CZASU
@@ -75,7 +92,7 @@ void setup() {
   pinMode(INPUT2PIN, OUTPUT);
   pinMode(ENABLE1PIN, OUTPUT);
   digitalWrite(INPUT1PIN, HIGH);
-  digitalWrite(INPUT2PIN, HIGH);
+  digitalWrite(INPUT2PIN, LOW);
   analogWrite(ENABLE1PIN, WartoscWypelnienia);
   
   
@@ -87,14 +104,37 @@ void loop() {
   if(AktualnyCzas - ZapamietanyCzasPID >= CZASPOWTARZANIAPID)
   {
     LiczPID();
+    ZapamietanyCzasPID = AktualnyCzas;
   }
   
 }
 
 int LiczPID()
 {
+  Error = ZADANYPOZIOM - LiczAktualnyPoziomWody();                                // CZESC P
+  ErrorSum = ErrorSum + ((Error + LastError)*0.5);      // CZESC I
+  Derror = (Error - LastError);                                                   // CZESC D
+  Pout = Kp * Error;
+  Iout = Ki * ErrorSum;
+  Dout = Kd * Derror;
+
+  if (Iout > 255) Iout = 255; // w celu zapobiegniecia zjawisku wind-up calkowania
+  else if (Iout < 0) Iout = 0;
+  
+  WartoscWypelnienia = Pout + Iout + Dout;
+
+  if(WartoscWypelnienia > 255) WartoscWypelnienia = 255; // wypelnienie jest wartoscia 8bit, z zakresu 0-255
+  else if(WartoscWypelnienia < 0) WartoscWypelnienia = 0;
+
+  LastError = Error;
+
+  // ZMIANA WYPELNIENIA STERUJACEGO DZIALANIEM POMPY
+  analogWrite(ENABLE1PIN, WartoscWypelnienia);
+  
   
 }
+
+
 
 int LiczAktualnyPoziomWody()
 {
@@ -142,12 +182,15 @@ int LiczAktualnyPoziomWody()
 
   else
   {
-    BladUszkodzeniaCzujnika(); // NIESPELNIENIE ZADNEGO Z POWYZSZYCH WARUNKOW OZNACZA USZKODZENIE KTOREGOS Z CZUJNIKOW
+    AktualnyPoziomWody = BladUszkodzeniaCzujnika(); // NIESPELNIENIE ZADNEGO Z POWYZSZYCH WARUNKOW OZNACZA USZKODZENIE KTOREGOS Z CZUJNIKOW
   }
+
+  return AktualnyPoziomWody;
   
 }
 
-void BladUszkodzeniaCzujnika()
+int BladUszkodzeniaCzujnika()
 {
-  
+  return ZADANYPOZIOM; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> WYLACZAM POMPKE
+  //return 6; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> POMPUJE CALY CZAS WODE Z MAKSYMALNA PREDKOSCIA
 }
