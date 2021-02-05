@@ -21,7 +21,6 @@
  * 
  * 
  */
- #include "TimerOne.h"
  
  //
  // NUMERY PINOW ARDUINO DO KTORYCH PODLACZONE SA KOLEJNE CZUJNIKI
@@ -45,9 +44,10 @@
 // ZADANY POZIOM WODY, WARTOSC OD 0 DO 6
  #define ZADANYPOZIOM 3
 
-// CZAS W MILISEKUNDACH CO JAKI MA BYC LICZONA WARTOSC REGULATORA PID
+// CZAS W MILISEKUNDACH CO JAKI MA BYC LICZONA WARTOSC REGULATORA PID I PRZEPLYWU
  #define CZASPOWTARZANIAPID 1000      // 1000ms = 1s
  #define CZASPOWTARZANIAPRZEP 2000    // 2000ms = 2s
+ #define CZASPOWTARZANIAUARTADOTV 100 // 100ms = 0,1s => 10Hz
 
 // ZMIENNE PRZECHOWUJACE NASTAWY REGULATORA PID
   float Kp = 0.7;
@@ -80,14 +80,19 @@
  unsigned long AktualnyCzas = 0;
  unsigned long ZapamietanyCzasPID = 0;
  unsigned long ZapamietanyCzasPrzep = 0;
+ unsigned long ZapamietanyCzasTV = 0;
 
+ //
+ //TABLICA DO TELEMETRYVIEW
+ //
+  char text[16]; 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
   //
   //DEFINICJA PINOW CZUJNIKOW POZIOMU CIECZY - PINY PODCIAGNIETE WEWNETRZNIE DO VCC - ZALACZENIE CZUJNIKA ZWIERA GO DO GND
-  //CZUJNIK POLOZONY W TEN SPOSOB, ZE GDY JEST W WODZIE PLYWAK PODNOSI SIE DO GORY - ROZWARCIE- WEW. PULLUP - GDY POZIOM OPADA, PLYWAK OPADA - KONTRAKTON ZWIERA DO MASY
+  //CZUJNIK POLOZONY W TEN SPOSOB, ZE GDY JEST W WODZIE PLYWAK PODNOSI SIE DO GORY - ROZWARCIE- WEW. PULLUP - GDY POZIOM OPADA, PLYWAK OPADA - KONTRAKTON ZWIERA SYGNAL DO MASY
   //
   pinMode(CZUJNIK_1_PIN, INPUT_PULLUP);
   pinMode(CZUJNIK_2_PIN, INPUT_PULLUP);
@@ -128,9 +133,16 @@ void loop() {
   }
   if(AktualnyCzas - ZapamietanyCzasPrzep >= CZASPOWTARZANIAPRZEP)
   {
-    WartoscPrzeplywomierza = LiczPrzeplyw;
+    WartoscPrzeplywomierza = LiczPrzeplyw();
     ZapamietanyCzasPrzep = AktualnyCzas;
   }
+    if(AktualnyCzas - ZapamietanyCzasTV >= CZASPOWTARZANIAUARTADOTV)
+  {
+    sprintf(text, "%d,%d,%d", AktualnyPoziomWody, WartoscPrzeplywomierza, WartoscWypelnienia);
+    Serial.println(text);
+    ZapamietanyCzasTV = AktualnyCzas;
+  }
+  
   
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -236,7 +248,6 @@ int LiczAktualnyPoziomWody()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int BladUszkodzeniaCzujnika()
 {
-  Serial.println("UWAGA PRZYNAJMNIEJ JEDEN Z CZUJNIKOW JEST USZKODZONY!");
   return ZADANYPOZIOM; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> WYLACZAM POMPKE
   //return 6; // WERSJA- GDY KTORYS Z CZUJNIKOW SIE POPSUL -> POMPUJE CALY CZAS WODE Z MAKSYMALNA PREDKOSCIA
 }
@@ -244,5 +255,5 @@ int BladUszkodzeniaCzujnika()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void BladUszkodzonegoPrzeplywomierza()
 {
-  Serial.println("UWAGA PRZEPLYWOMIERZ JEST USZKODZONY!");
+  
 }
