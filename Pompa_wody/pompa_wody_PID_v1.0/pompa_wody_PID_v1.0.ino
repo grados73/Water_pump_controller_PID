@@ -256,9 +256,9 @@ int LiczAktualnyPoziomWody()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void ZmienWspolczynnikiPID()
 {
-    float Kp = analogRead(A5)/100.0;
-    float Ki = analogRead(A4)/100.0;
-    float Kd = analogRead(A3)/100.0;
+    Kp = analogRead(A5)/100.0;
+    Ki = analogRead(A4)/100.0;
+    Kd = analogRead(A3)/100.0;
 }
 
 
