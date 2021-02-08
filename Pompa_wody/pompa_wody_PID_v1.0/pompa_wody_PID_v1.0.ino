@@ -48,11 +48,12 @@
  #define CZASPOWTARZANIAPID 1000      // 1000ms = 1s
  #define CZASPOWTARZANIAPRZEP 2000    // 2000ms = 2s
  #define CZASPOWTARZANIAUARTADOTV 100 // 100ms = 0,1s => 10Hz
+ #define CZASPOWTARZANIAZMIANYPARAMETROWPID 500 // 500ms = 0,5s
 
 // ZMIENNE PRZECHOWUJACE NASTAWY REGULATORA PID
-  float Kp = 0.7;
-  float Ki = 1;
-  float Kd = 0.2;
+  float Kp = 0.7; //A5
+  float Ki = 1;   //A4
+  float Kd = 0.2; //A3
 
 // ZMIENNE PRZECHOWUJACE WYNIKI OBLICZEN KONKRETNYCH NASTAW REGULATORA
   float Pout, Iout, Dout; 
@@ -81,11 +82,12 @@
  unsigned long ZapamietanyCzasPID = 0;
  unsigned long ZapamietanyCzasPrzep = 0;
  unsigned long ZapamietanyCzasTV = 0;
+ unsigned long ZapamietanyCzasZmianaPID = 0;
 
  //
  //TABLICA DO TELEMETRYVIEW
  //
-  char text[16]; 
+  char text[24]; 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,19 +133,26 @@ void loop() {
     LiczPID();
     ZapamietanyCzasPID = AktualnyCzas;
   }
+  
   if(AktualnyCzas - ZapamietanyCzasPrzep >= CZASPOWTARZANIAPRZEP)
   {
     WartoscPrzeplywomierza = LiczPrzeplyw();
     ZapamietanyCzasPrzep = AktualnyCzas;
   }
+  
+    if(AktualnyCzas - ZapamietanyCzasZmianaPID >= CZASPOWTARZANIAZMIANYPARAMETROWPID)
+  {
+    ZmienWspolczynnikiPID();
+    ZapamietanyCzasZmianaPID = AktualnyCzas;
+  }
+  
     if(AktualnyCzas - ZapamietanyCzasTV >= CZASPOWTARZANIAUARTADOTV)
   {
     sprintf(text, "%d,%d,%d", AktualnyPoziomWody, WartoscPrzeplywomierza, WartoscWypelnienia);
     Serial.println(text);
     ZapamietanyCzasTV = AktualnyCzas;
   }
-  
-  
+
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //FUNKCJE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,6 +253,14 @@ int LiczAktualnyPoziomWody()
   return AktualnyPoziomWody;
   
 }
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void ZmienWspolczynnikiPID()
+{
+    float Kp = analogRead(A5)/100.0;
+    float Ki = analogRead(A4)/100.0;
+    float Kd = analogRead(A3)/100.0;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int BladUszkodzeniaCzujnika()
