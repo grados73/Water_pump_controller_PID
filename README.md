@@ -13,7 +13,7 @@
 The microcontroller on the basis of 6 sensors determines the water level in te aquarium and controls the pump in such a way as to provide set amount of water in the aquarium.
 
 ## Screenshots
-Will be Added
+![Code_example1](./Images/Schemat_pcb.png)
 
 ## Technologies
 C,
@@ -22,7 +22,7 @@ PID.
 
 ## Code Examples
 
-![Code_example1](./photo/code1.png)
+![Code_example1](./Images/kod.bmp)
 
 ## Features
 Kp, Ki and Kd parametrs can be changed by changing the potentiometer settings.
