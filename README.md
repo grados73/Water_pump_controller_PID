@@ -10,7 +10,7 @@
 * [Contact](#contact)
 
 ## General info
-The microcontroller on the basis of 6 sensors determines the water level in te aquarium and controls the pump in such a way as to provide set amount of water in the aquarium.
+The microcontroller on the basis of 6 sensors determines the water level in the aquarium and controls the pump in such a way as to provide set amount of water in the aquarium.
 
 ## Screenshots
 ![Code_example1](./Images/Schemat_pcb.png)
